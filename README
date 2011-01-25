@@ -1,1 +1,3 @@
 Sinatra for speed.
+
+This is going to be quick and dirty, but it will actually use four different servers instead of pretending like badge-demo.

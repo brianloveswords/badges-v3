@@ -4,6 +4,8 @@ class Issuer < Sinatra::Base
   set :version, "0.1"
   
   # routes
-  get '/' {"Issuer #{settings.version}"}
+  get '/' do
+    "Issuer #{settings.version}"
+  end
 end
 

@@ -18,10 +18,13 @@ class Issuer < Sinatra::Base
     Typhoeus::Request.post('http://hub.rembr.it/issuer/register', :params => data).body
   end
   
-  get '/award-badge/javascript' do
+  # award a badge
+  get '/award-badge/:badge' do
+    data = {:badge => "http://issuer.rembr.it/badge/bjb/#{params['badge']}", :phrase => settings.secret}
+    Typhoeus::Request.post('http://hub.rembr.it/issuer/store', :params => data).body
   end
   
-  # badges
+  # hardcoded badges
   get '/badge/bjb/javascript' do
     badge = {
       :suborg => 'School of Webcraft',

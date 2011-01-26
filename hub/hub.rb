@@ -42,15 +42,44 @@ class Hub < Sinatra::Base
     res.inspect
   end
   
-  get '/db-test' do
-    issuers = @db['issuers']
-    UUID.random_create.to_s
+  # store a badge for an issuer
+  post '/issuer/store' do
+    issuers_collection = @db['issuers']
+    badges_collection = @db['badges']
+    
+    badge_uri = params['badge']
+    host = URI(badge_uri).host
+    secret_phrase = encrypt(params['phrase'])
+    
+    # make sure the issuer exists and passphrase is correct
+    issuer_query = issuers_collection.find(:host => host, :secret => secret_phrase).entries
+    if issuer_query.length == 0
+      headers = {'Content-Type' => 'text/plain'}
+      body = {:error => "issuer_not_found", "reason" => "Either the issuer could not be found or the passphrase is incorrect"}.to_json
+      return [403, headers, body]
+    end
+    
+    issuer = issuer_query[0]
+    # make sure the badge doesn't already exist
+    badge_query = badges_collection.find(:uri => badge_uri).entries
+    if badge_query.length > 0
+      headers = {'Content-Type' => 'text/plain'}
+      body = {:error => "badge_exists", "reason" => "This badge already exists in the system. Badge URIs must be unique."}.to_json
+      return [403, headers, body]
+    end
+    
+    badge_contents = JSON.parse(Typhoeus::Request.get(badge_uri).body)
+    badge_contents['uuid'] = generate_id
+    badge_contents['uri'] = badge_uri
+    badge_contents['issuer'] = issuer['host']
+    badge_contents['org'] = issuer['name']
+    
+    badges_collection.insert(badge_contents)
+    badge_contents.to_json
   end
-  
   
   protected
-  def encrypt phrase
-    Digest::SHA2.new(256).update(phrase).to_s
-  end
+  def generate_id ; UUIDTools::UUID.random_create.to_s; end
+  def encrypt phrase ; Digest::SHA2.new(256).update(phrase).to_s ; end
 end
 

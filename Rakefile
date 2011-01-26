@@ -1,19 +1,20 @@
-# put some server functions in here, will ya?!
-HUB_PORT = 4567
+# server is hardcoded to shotgun at the moment.
+PORTS = {"issuer" => 4568, "hub" => 4567, }
 
+desc "Start the shotgun servers"
 task :start do
-  ports = {"issuer" => 4568, "hub" => 4567, }
-  ['issuer'].each do |service|
+  ['issuer', 'hub',].each do |service|
     if get_pid(service) and !pid_stale?(service)
       puts "#{service} already started" and return
     else
-      start_shotgun(service, ports[service]) and puts "#{service} started"
+      start_shotgun(service, PORTS[service]) and puts "#{service} started"
     end
   end
 end
 
+desc "Stop the shotgun servers"
 task :stop do
-  ['issuer'].each do |service|
+  ['issuer', 'hub',].each do |service|
     if stop_shotgun(service)
       destroy_pidfile(service)
       puts "#{service} stopped"
@@ -23,14 +24,12 @@ task :stop do
   end
 end
 
-task :test do
-  puts stop_shotgun "issuer"
-end
+desc "Restart the shotgun servers"
+task :restart => [:stop, :start]
+task :default => :restart
 
-task :stale do
-  puts check_stale "issuer"
-end
 
+# helpers 
 def get_pid service
   return false unless File.exists?("%1$s/%1$s.pid" % service)
   return File.read("%1$s/%1$s.pid" % service).chomp
@@ -49,6 +48,12 @@ end
 
 def stop_shotgun service
   pid = get_pid(service)
+  if pid_stale?(service)
+    destroy_pidfile(service)
+    puts "#{service} pidfile stale, removing"
+    return false
+  end
+  
   unless pid
     # puts "#{service} not running"
     return false
@@ -59,8 +64,3 @@ end
 def start_shotgun service, port
   system "cd %1$s && (shotgun -p#{port} -o127.0.0.1 > /dev/null 2>&1  &  echo $! > %1$s.pid)" % service
 end
-
-
-task :restart => [:stop, :start]
-task :default => :start
-

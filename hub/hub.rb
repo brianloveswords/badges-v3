@@ -129,6 +129,42 @@ class Hub < Sinatra::Base
     res.inspect
   end
   
+  get '/badges.js' do
+    # TODO: make sure user exists
+    public_badges = get_user_badges(params[:user])['public']
+    badge_html = ''
+    public_badges.each do |badge|
+      badge_html += """
+<li style='list-style: none'><a style='cursor: pointer;display: block; padding: 5px; min-height: 60px;border-radius: 5px; background: #fff; border: 1px solid #aaa;'>
+<img src='//#{badge['issuer']}#{badge['image']}' alt='#{badge['title']}' style='height: 60px; width: 60px; float: left;'>
+<h1 style='font-family: Helvetica Neue, sans-serif; font-size: 16px; line-height: 17px; margin: 5px 0 0; padding: 0;letter-spacing: 0;'>#{badge['title']}</h1>
+<h2 style='font-family: Helvetica Neue, sans-serif; font-size: 14px; line-height: 15px; margin: 0; padding: 0;letter-spacing: 0;'>#{badge['org']}</h2>
+<h3 style='font-family: Helvetica Neue, sans-serif; font-size: 12px; line-height: 13px; margin: 0; padding: 0;letter-spacing: 0;'>#{badge['suborg']}</h3>
+</a></li>
+""".gsub(/\n/, '').chomp
+    end
+    body = """
+(function(global, document){
+  var container = document.getElementById('badge_container')
+  var badge_html = \"#{badge_html}\"
+  if (container && badge_html) {
+   var iframe = document.createElement('iframe');
+   iframe.style.border = '0'
+   iframe.onload = function(){
+     iframe.contentDocument.body.innerHTML = badge_html
+     iframe.style.height = iframe.scrollHeight + 20 + 'px'
+   }
+   container.appendChild(iframe);
+  }
+})(this, this.document)
+"""
+    [200, {"Content-Type" => "text/plain"}, body]
+  end
+
+  
+
+  
+  # HELPERS AND UTILITIES
   protected
   def add_badge badge
     # TODO: add badge into 'pending', let user reject badges
@@ -163,8 +199,6 @@ class Hub < Sinatra::Base
     revalidate(@db['users'].find({:_id => email}).entries.first)['badges']
   end
   
-  def generate_id ; UUIDTools::UUID.random_create.to_s.delete('-'); end
-  def encrypt phrase ; Digest::SHA2.new(256).update(phrase).to_s ; end
   def revalidate userdata
     # TODO: this should really return the updated set
     badges_collection = @db['badges']
@@ -201,5 +235,14 @@ class Hub < Sinatra::Base
     @db['users'].update({'_id' => doc['_id']}, doc)
     return doc
   end
+  
+  def generate_id
+    UUIDTools::UUID.random_create.to_s.delete('-')
+  end
+  
+  def encrypt phrase
+    Digest::SHA2.new(256).update(phrase).to_s
+  end
+
 end
 

@@ -6,14 +6,14 @@
   %body
     %h1= "Backpack #{@version}"
 
-    %h2= @params['email']
+    %h2= @user
 
     - @badgesets.each do |set, badges|
       %section{:role => 'badgeset'}
         %h2{:role => 'set-title'}= "#{set} badges"
-        %ul{:role => 'badges'}
+        %ul{:role => 'badges', :class => 'container', :rel => set}
           - badges.each do |badge|
-            %li{:role => 'badge', :class => 'badge'}
+            %li{:role => 'badge', :class => 'badge', :id => badge['_id']}
               %a
                 %img.artifact{:src => ['//', badge['issuer'], badge['image']].join(''),
                               :alt => badge['title']}
@@ -24,5 +24,6 @@
         %br
 
     %script{:src => '//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js'}
+    %script{:src => '//ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js'}
     %script{:src => '/js/backpack.js'}
       

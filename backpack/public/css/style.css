@@ -25,12 +25,13 @@ li[role='badge'] {
   list-style: none;
   float: left;
   margin-right: 20px;
-  
+  margin-bottom: 20px;
 }
 
   li[role='badge'] a {
+    -moz-transition: all 0.2s;
     display: block;
-    min-width: 250px;
+    min-width: 240px;
     min-height: 60px;
     background: #fff;
     border: 1px solid #aaa;
@@ -39,6 +40,7 @@ li[role='badge'] {
   }
 
   li[role='badge'] a:hover {
+    -moz-transition: all 0.2s;
     -moz-box-shadow: 0px 0px 3px #3a3;
     -webkit-box-shadow: 0px 0px 3px #3a3;
     box-shadow: 0px 0px 3px #3a3;
@@ -69,13 +71,18 @@ li[role='badge'] {
   }
 
 section {
+  -moz-transition: all 0.2s;
   clear: both;
   border: 1px solid #ddd;
   background: #e0e0e0;
   padding: 10px;
   margin: 0 0 20px;
 }
-
+section.drophover {
+  -moz-transition: all 0.2s;
+  background: #dfd;
+}
+ 
 section br {
   clear: both;
 }

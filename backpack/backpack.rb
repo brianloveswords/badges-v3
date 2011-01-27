@@ -3,7 +3,10 @@ class Backpack < Sinatra::Base
   set :version, "0.1"
   
   # version
-  get '/' do; "Backpack #{settings.version}"; end
+  get '/' do
+    @version = settings.version
+    haml :index
+  end
 end
 
   

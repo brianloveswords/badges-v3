@@ -108,24 +108,23 @@ class Hub < Sinatra::Base
   
   protected
   def add_badge badge
-    badges_collection = @db['badges']
-    users_collection = @db['users']
-    
-    user = find_user! badge['owner']
-    
-    badges_collection.insert(badge)
-    
     # TODO: add badge into 'pending', let user reject badges
-    # TODO: send email when a user gets a badge
+    user = find_user! badge['owner']
     user['badges']['private'].push(badge)
-    users_collection.update({'_id', user['_id']}, user)
+    
+    # TODO: send email when a user gets a badge
+    
+    @db['users'].update({'_id', user['_id']}, user)
+    @db['badges'].insert(badge)
   end
   
   # create or find user in the system
   def find_user! email
     users_collection = @db['users']
     matches = users_collection.find({:_id => email}).entries
-    if matches.length == 0
+    if matches.length == 1
+      matches.first
+    else
       @db['users'].insert({
         "_id" => email,
         'badges' => {
@@ -134,8 +133,6 @@ class Hub < Sinatra::Base
           'rejected' => [],
         },
       })
-    else
-      matches.first
     end
   end
   

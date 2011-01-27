@@ -3,23 +3,26 @@
   %head
     %link{:rel => :stylesheet, :type => 'text/css', :href =>'css/style.css'}
     %title Badge Backpack
-
   %body
     %h1= "Backpack #{@version}"
 
     %h2= @params['email']
 
-    %ul{:role => 'badges'}
-    - @badges.each do |badge|
-      %li{:role => 'badge'}
-        %a
-          %img.artifact{:src => ['http://', badge['issuer'], badge['image']].join(''),
-               :alt => badge['title']}
-          %h1= badge['title']
-          %h2= badge['org']
-          %h3= badge['suborg']
-          %p= badge['description']
-    - if @badges.length == 0
-      %li No badges :(
+    - @badgesets.each do |set, badges|
+      %section{:role => 'badgeset'}
+        %h2{:role => 'set-title'}= "#{set} badges"
+        %ul{:role => 'badges'}
+          - badges.each do |badge|
+            %li{:role => 'badge', :class => 'badge'}
+              %a
+                %img.artifact{:src => ['//', badge['issuer'], badge['image']].join(''),
+                              :alt => badge['title']}
+                %h1= badge['title']
+                %h2= badge['org']
+                %h3= badge['suborg']
+                %p= badge['description']
+        %br
 
+    %script{:src => '//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js'}
+    %script{:src => '/js/backpack.js'}
       

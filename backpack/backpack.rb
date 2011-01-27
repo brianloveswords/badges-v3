@@ -12,7 +12,7 @@ class Backpack < Sinatra::Base
     @version = settings.version
     
     @params = params
-    @badges = get_user_badges(params["email"])
+    @badgesets = get_user_badges(params["email"])
     
     haml :backpack
   end

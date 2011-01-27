@@ -4,7 +4,7 @@ class Issuer < Sinatra::Base
   # settings
   set :version, "0.1"
   set :secret, 'badgegiver'
-  # routes
+  # version
   get '/' do; "Issuer #{settings.version}"; end
 
   # Providing identity
@@ -28,10 +28,11 @@ class Issuer < Sinatra::Base
   get '/badge/bjb/javascript' do
     badge = {
       :suborg => 'School of Webcraft',
-      :title => 'JavaScript Expert',
+      :title => 'JavaScript Ninja',
       :owner => 'brianloveswords@gmail.com',
       :description => 'Conferred for being totally wicked at JS',
       :image => '/images/p2pu_js.png',
+      :expires => 120,
     }.to_json
   end
   get '/badge/bjb/audio' do

@@ -88,6 +88,8 @@ class Hub < Sinatra::Base
     badge_contents.to_json
   end
   
+  
+  # get some badges for a user's backpack
   get '/badges' do
     badges_collection = @db['badges']
     user = env['HTTP_FROM']
@@ -95,18 +97,7 @@ class Hub < Sinatra::Base
     
     # pretend some validation goes on here
     
-    badges = badges_collection.find(:owner => user).entries
-    
-    # figure out if any badges need to revalidate
-    now = Time.now.to_i
-    badges.map! do |badge|
-      if badge['expires'] and (now > badge['last_update'].to_i + badge['expires'].to_i)
-        badge = revalidate(badge)
-      end
-      badge
-    end
-    
-    badges.to_json
+    get_user_badges(user).to_json
   end
 
   
@@ -117,19 +108,48 @@ class Hub < Sinatra::Base
   end
   
   protected
+  def get_user_badges email
+    users_collection = @db['users']
+    badges_collection = @db['badges']
+    badgeset = nil
+    matches = users_collection.find({:_id => email}).entries
+    if matches.length == 0
+      # create user and set all badges to private by default
+      badges = badges_collection.find(:owner => email).entries
+      doc = {
+        "_id" => email,
+        :badges => {
+          :private => badges,
+          :public => [],
+          :rejected => [],
+        },
+      }
+      users_collection.insert(doc)
+      badgeset = doc[:badges]
+    else
+      badgeset = matches[0]['badges']
+    end
+    revalidate(badgeset)
+  end
+  
   def generate_id ; UUIDTools::UUID.random_create.to_s.delete('-'); end
   def encrypt phrase ; Digest::SHA2.new(256).update(phrase).to_s ; end
-  def revalidate badge
+  def revalidate badgeset
+    # TODO: this should really return the updated set
+    badges = badgeset.values.flatten
     badges_collection = @db['badges']
-    
-    # this should make sure that the badge still exists before trying to parse
-    updated_contents = JSON.parse(Typhoeus::Request.get(badge['uri']).body)
-    
-    updated_badge = badge.merge(updated_contents)
-    updated_badge['last_update'] = Time.now.to_i
-    
-    badges_collection.update({"_id" => badge['_id']}, updated_badge)
-    return updated_badge
+    now = Time.now.to_i
+    badges.each do |badge|
+      next unless badge['expires'] and (now > badge['last_update'].to_i + badge['expires'].to_i)
+      # TODO: this should make sure that the badge still exists before trying to parse
+      # TODO: this should be done with hydra in parallel
+      updated_contents = JSON.parse(Typhoeus::Request.get(badge['uri']).body)
+
+      updated_badge = badge.merge(updated_contents)
+      updated_badge['last_update'] = now
+      badges_collection.update({"_id" => badge['_id']}, updated_badge)
+    end
+    return badgeset
   end
 end
 

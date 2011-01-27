@@ -32,7 +32,7 @@ class Issuer < Sinatra::Base
       :owner => 'brianloveswords@gmail.com',
       :description => 'Conferred for being totally wicked at JS',
       :image => '/images/p2pu_js.png',
-      :expires => 120,
+      :expires => 60,
     }.to_json
   end
   get '/badge/bjb/audio' do

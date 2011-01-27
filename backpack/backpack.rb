@@ -20,6 +20,7 @@ class Backpack < Sinatra::Base
     redirect '/'
   end
   
+  # log a user in
   post '/' do
     session['user'] = params['email']
     redirect '/'
@@ -27,17 +28,19 @@ class Backpack < Sinatra::Base
 
   post '/update-privacy' do
     email = session['user']
-    
-    # TODO: don't hardcode my own email address for one
     headers = {"From" => email, "Authentication" => "this_is_a_password"}
-    uri = 'http://hub.rembr.it/user/update'
-    response = Typhoeus::Request.get(uri, :headers => headers, :params => {:badges => params[:badges] })
+    uri = 'http://hub.rembr.it/user/badges'
+    
+    # TODO: figure out why it destroys inner arrays if I don't pass as json
+    response = Typhoeus::Request.put(uri, :headers => headers, :params => {:badges => params[:badges].to_json })
     response.body
   end
   
   
   protected
   def get_user_badges email
+    # TODO: make sure the user exists AND/OR
+    # TODO: fail gracefully when the user doesn't exist
     headers = {"From" => email, "Authentication" => "this_is_a_password"}
     badges = JSON.parse(Typhoeus::Request.get('http://hub.rembr.it/user/badges', :headers => headers).body)
   end

@@ -90,7 +90,7 @@ class Hub < Sinatra::Base
   
   
   # get some badges for a user's backpack
-  get '/badges' do
+  get '/user/badges' do
     badges_collection = @db['badges']
     user = env['HTTP_FROM']
     pass = env['HTTP_AUTHENTICATION']
@@ -99,6 +99,29 @@ class Hub < Sinatra::Base
     get_user_badges(user).to_json
   end
 
+  # update a user's privacy settings for badges
+  # TODO: pull most of this into helper methods, general cleanup
+  put '/user/badges' do
+    user = env['HTTP_FROM']
+    pass = env['HTTP_AUTHENTICATION']
+    
+    # TODO: error checking 
+    badgeset = JSON.parse(params['badges'])
+    user_badges = {}
+    
+    @db['badges'].find({:owner => user}).each do |badge|
+      user_badges[badge['_id']] = badge
+    end
+    
+    updated = {}
+    badgeset.each do |visibility, badge_ids|
+      updated[visibility] = badge_ids.map {|id| user_badges[id]}
+    end
+    
+    doc = {'_id' => user, 'badges' => updated}
+    @db['users'].update({'_id' => user}, doc)
+    return doc.to_json
+  end
   
   # remove all badges from the collection
   get '/badges/nuke' do
@@ -137,27 +160,46 @@ class Hub < Sinatra::Base
   end
   
   def get_user_badges email
-    revalidate(@db['users'].find({:_id => email}).entries.first['badges'])
+    revalidate(@db['users'].find({:_id => email}).entries.first)['badges']
   end
   
   def generate_id ; UUIDTools::UUID.random_create.to_s.delete('-'); end
   def encrypt phrase ; Digest::SHA2.new(256).update(phrase).to_s ; end
-  def revalidate badgeset
+  def revalidate userdata
     # TODO: this should really return the updated set
-    badges = badgeset.values.flatten
     badges_collection = @db['badges']
+    dirty = false
     now = Time.now.to_i
-    badges.each do |badge|
-      next unless badge['expires'] and (now > badge['last_update'].to_i + badge['expires'].to_i)
-      # TODO: this should make sure that the badge still exists before trying to parse
-      # TODO: this should be done with hydra in parallel
-      updated_contents = JSON.parse(Typhoeus::Request.get(badge['uri']).body)
+    updated = {}
+    
+    # TODO: refactor this confusing mess
+    userdata['badges'].each do |visibility, badges|
+      updated[visibility] = badges.map do |badge|
+        found = badges_collection.find({'_id' => badge['_id']}).entries
+        if found.length == 0
+          (dirty = true) and next
+        end
+        
+        if badge['expires'] and (now > badge['last_update'].to_i + badge['expires'].to_i)
+          # TODO: this should make sure that the badge still exists before trying to parse
+          # TODO: this should be done with hydra in parallel
+          updated_contents = JSON.parse(Typhoeus::Request.get(badge['uri']).body)
 
-      updated_badge = badge.merge(updated_contents)
-      updated_badge['last_update'] = now
-      badges_collection.update({"_id" => badge['_id']}, updated_badge)
+          updated_badge = badge.merge(updated_contents)
+          updated_badge['last_update'] = now
+          badges_collection.update({"_id" => badge['_id']}, updated_badge)
+          (dirty = true) and updated_badge
+        else
+          badge
+        end
+      end.reject {|a| a.nil? }
     end
-    return badgeset
+    
+    return userdata unless dirty
+    
+    doc = { '_id' => userdata['_id'], 'badges' => updated }
+    @db['users'].update({'_id' => doc['_id']}, doc)
+    return doc
   end
 end
 

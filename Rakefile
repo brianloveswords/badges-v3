@@ -1,20 +1,20 @@
 # server is hardcoded to shotgun at the moment.
-PORTS = {"issuer" => 4568, "hub" => 4567, }
+SERVICES = {:hub => 4567, :issuer => 4568, :backpack => 4570}
 
 desc "Start the shotgun servers"
 task :start do
-  ['issuer', 'hub',].each do |service|
+  SERVICES.each do |service, port|
     if get_pid(service) and !pid_stale?(service)
       puts "#{service} already started" and return
     else
-      start_shotgun(service, PORTS[service]) and puts "#{service} started"
+      start_shotgun(service, port) and puts "#{service} started"
     end
   end
 end
 
 desc "Stop the shotgun servers"
 task :stop do
-  ['issuer', 'hub',].each do |service|
+  SERVICES.each do |service, port|
     if stop_shotgun(service)
       destroy_pidfile(service)
       puts "#{service} stopped"

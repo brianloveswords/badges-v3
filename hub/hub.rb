@@ -1,4 +1,5 @@
 class Hub < Sinatra::Base
+  include Log4r
   include UUIDTools
   use Rack::MethodOverride
   
@@ -7,6 +8,8 @@ class Hub < Sinatra::Base
   
   def initialize
     @db = Mongo::Connection.new.db("badges")
+    @logger = Logger.new "hub"
+    @logger.outputters = FileOutputter.new('hub', :filename => 'hub.log')
     super
   end
   
@@ -85,6 +88,28 @@ class Hub < Sinatra::Base
     badge_contents.to_json
   end
   
+  get '/badges' do
+    badges_collection = @db['badges']
+    user = env['HTTP_FROM']
+    pass = env['HTTP_AUTHENTICATION']
+    
+    # pretend some validation goes on here
+    
+    badges = badges_collection.find(:owner => user).entries
+    
+    # figure out if any badges need to revalidate
+    now = Time.now.to_i
+    badges.map! do |badge|
+      if badge['expires'] and (now > badge['last_update'].to_i + badge['expires'].to_i)
+        badge = revalidate(badge)
+      end
+      badge
+    end
+    
+    badges.to_json
+  end
+
+  
   # remove all badges from the collection
   get '/badges/nuke' do
     res = @db['badges'].remove({})
@@ -94,5 +119,17 @@ class Hub < Sinatra::Base
   protected
   def generate_id ; UUIDTools::UUID.random_create.to_s.delete('-'); end
   def encrypt phrase ; Digest::SHA2.new(256).update(phrase).to_s ; end
+  def revalidate badge
+    badges_collection = @db['badges']
+    
+    # this should make sure that the badge still exists before trying to parse
+    updated_contents = JSON.parse(Typhoeus::Request.get(badge['uri']).body)
+    
+    updated_badge = badge.merge(updated_contents)
+    updated_badge['last_update'] = Time.now.to_i
+    
+    badges_collection.update({"_id" => badge['_id']}, updated_badge)
+    return updated_badge
+  end
 end
 

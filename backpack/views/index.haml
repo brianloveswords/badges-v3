@@ -1,7 +1,13 @@
 !!! 5
 %html
   %head
+    %link{:rel => :stylesheet, :type => 'text/css', :href =>'css/style.css'}
     %title Badge Backpack
 
   %body
     %h1= "Backpack #{@version}"
+
+    %form{:action => '/', :method => 'post'}
+      %input{:name => 'email', :type => :text, :placeholder => 'Enter your email address'}
+      and pretend you had to type in a password
+    

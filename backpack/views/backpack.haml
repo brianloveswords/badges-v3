@@ -1,0 +1,25 @@
+!!! 5
+%html
+  %head
+    %link{:rel => :stylesheet, :type => 'text/css', :href =>'css/style.css'}
+    %title Badge Backpack
+
+  %body
+    %h1= "Backpack #{@version}"
+
+    %h2= @params['email']
+
+    %ul{:role => 'badges'}
+    - @badges.each do |badge|
+      %li{:role => 'badge'}
+        %a
+          %img.artifact{:src => ['http://', badge['issuer'], badge['image']].join(''),
+               :alt => badge['title']}
+          %h1= badge['title']
+          %h2= badge['org']
+          %h3= badge['suborg']
+          %p= badge['description']
+    - if @badges.length == 0
+      %li No badges :(
+
+      

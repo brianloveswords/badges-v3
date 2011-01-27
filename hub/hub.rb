@@ -68,18 +68,31 @@ class Hub < Sinatra::Base
       return [403, headers, body]
     end
     
+    # get the contents of the badge from the issuer
     badge_contents = JSON.parse(Typhoeus::Request.get(badge_uri).body)
-    badge_contents['uuid'] = generate_id
-    badge_contents['uri'] = badge_uri
-    badge_contents['issuer'] = issuer['host']
-    badge_contents['org'] = issuer['name']
     
+    # merge in auxiliary data
+    badge_contents.merge!({
+      "_id" => generate_id,
+      :uri => badge_uri,
+      :issuer => issuer['host'],
+      :org => issuer['name'],
+      :last_update => Time.now.to_i
+    })
+    
+    # put the badge in the collection
     badges_collection.insert(badge_contents)
     badge_contents.to_json
   end
   
+  # remove all badges from the collection
+  get '/badges/nuke' do
+    res = @db['badges'].remove({})
+    res.inspect
+  end
+  
   protected
-  def generate_id ; UUIDTools::UUID.random_create.to_s; end
+  def generate_id ; UUIDTools::UUID.random_create.to_s.delete('-'); end
   def encrypt phrase ; Digest::SHA2.new(256).update(phrase).to_s ; end
 end
 

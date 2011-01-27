@@ -45,7 +45,7 @@ class Hub < Sinatra::Base
     res.inspect
   end
   
-  # store a badge for an issuer
+  # store a badge for a user
   post '/issuer/store' do
     issuers_collection = @db['issuers']
     badges_collection = @db['badges']
@@ -82,9 +82,9 @@ class Hub < Sinatra::Base
       :org => issuer['name'],
       :last_update => Time.now.to_i
     })
-    
+
     # put the badge in the collection
-    badges_collection.insert(badge_contents)
+    add_badge(badge_contents)
     badge_contents.to_json
   end
   
@@ -95,8 +95,7 @@ class Hub < Sinatra::Base
     user = env['HTTP_FROM']
     pass = env['HTTP_AUTHENTICATION']
     
-    # pretend some validation goes on here
-    
+    # TODO: some validation/authentication should go here
     get_user_badges(user).to_json
   end
 
@@ -108,28 +107,40 @@ class Hub < Sinatra::Base
   end
   
   protected
-  def get_user_badges email
-    users_collection = @db['users']
+  def add_badge badge
     badges_collection = @db['badges']
-    badgeset = nil
+    users_collection = @db['users']
+    
+    user = find_user! badge['owner']
+    
+    badges_collection.insert(badge)
+    
+    # TODO: add badge into 'pending', let user reject badges
+    # TODO: send email when a user gets a badge
+    user['badges']['private'].push(badge)
+    users_collection.update({'_id', user['_id']}, user)
+  end
+  
+  # create or find user in the system
+  def find_user! email
+    users_collection = @db['users']
     matches = users_collection.find({:_id => email}).entries
     if matches.length == 0
-      # create user and set all badges to private by default
-      badges = badges_collection.find(:owner => email).entries
-      doc = {
+      @db['users'].insert({
         "_id" => email,
-        :badges => {
-          :private => badges,
-          :public => [],
-          :rejected => [],
+        'badges' => {
+          'private' => [],
+          'public' => [],
+          'rejected' => [],
         },
-      }
-      users_collection.insert(doc)
-      badgeset = doc[:badges]
+      })
     else
-      badgeset = matches[0]['badges']
+      matches.first
     end
-    revalidate(badgeset)
+  end
+  
+  def get_user_badges email
+    revalidate(@db['users'].find({:_id => email}).entries.first['badges'])
   end
   
   def generate_id ; UUIDTools::UUID.random_create.to_s.delete('-'); end

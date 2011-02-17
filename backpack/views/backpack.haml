@@ -4,9 +4,15 @@
     %link{:rel => :stylesheet, :type => 'text/css', :href =>'css/style.css'}
     %title Badge Backpack
   %body
+    
+    %div.embedcode
+      %h3 Put this on your site to show your public badges
+      %textarea{:readonly => true}= "<div id='badge_container'></div>\n<script src='http://hub.rembr.it/view/#{@encoded_user}'></script>"
+    
     %h1= "Backpack #{@version}"
-
     %h2= @user
+    
+      
 
     - @badgesets.each do |set, badges|
       %section{:role => 'badgeset'}

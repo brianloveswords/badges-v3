@@ -10,6 +10,7 @@ class Backpack < Sinatra::Base
       return haml :index
     end
     @user = session['user']
+    @encoded_user = Base64.encode64(@user).chomp.gsub('==', '')
     @badgesets = get_user_badges(@user)
     haml :backpack
   end

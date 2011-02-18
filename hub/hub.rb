@@ -42,7 +42,10 @@ class Hub < Sinatra::Base
     
     doc = {:host => host, :name => contents['name'], :secret => contents['secret']}
     res = issuers.insert(doc)
-    res.inspect
+    
+    headers = {'Content-Type' => 'text/plain'}
+    body = {:ok => true}.to_json
+    return [200, headers, body]
   end
   
   # store a badge for a user
